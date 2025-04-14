@@ -38,9 +38,9 @@
 
 #### 3. Get data with filter (Date and Time)
 - **Endpoint**: **GET** `https://adapting-doe-precious.ngrok-free.app/ifarm-be/humidity/filter?start_time={startTime}&end_time={endTime}`
-- **Input Format**: `yyyy-MM-dd<T>HH:mm:ss<Z>`
-- **Format Explanation**: **Date** and **Time** are seperated by letter `T`. The letter `Z` at the end of **Time** part means Zulu Time (GMT 0), so converting your current time zone to Zulu Time is necessary.
-- **Example**: `https://adapting-doe-precious.ngrok-free.app/ifarm-be/humidity/filter?start="2025-03-19T05:17:22Z"&end="2025-03-24T05:31:52Z"` will return all humidity data from `12:17:22 19-03-2025` to `12:31:52 19-03-2025` in GMT+7.
+- **Input Format**: `yyyy-MM-dd<T>HH:mm:ss`
+- **Format Explanation**: `DateTime` is now GMT+7. You don't need to convert it to Zulu.
+- **Example**: `https://adapting-doe-precious.ngrok-free.app/ifarm-be/humidity/filter?start=2025-03-19T05:17:22&end=2025-03-24T05:31:52` will return all humidity data from `12:17:22 19-03-2025` to `12:31:52 19-03-2025` in GMT+7.
 - **Response**: same as `Get all data`.
 
 ### Temperature Data API
@@ -81,9 +81,9 @@
 
 #### 3. Get data with filter (Date and Time)
 - **Endpoint**: **GET** `https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature/filter?start={startTime}&end={endTime}`
-- **Input Format**: `yyyy-MM-dd<T>HH:mm:ss<Z>`
-- **Format Explanation**: **Date** and **Time** are seperated by letter `T`. The letter `Z` at the end of **Time** part means Zulu Time (GMT 0), so converting your current time zone to Zulu Time is necessary.
-- **Example**: `https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature/filter?start="2025-03-19T05:17:22Z"&end="2025-03-24T05:31:52Z"` will return all humidity data from `12:17:22 19-03-2025` to `12:31:52 19-03-2025` in GMT+7.
+- **Input Format**: `yyyy-MM-dd<T>HH:mm:ss`
+- **Format Explanation**: `DateTime` is now GMT+7. You don't need to convert it to Zulu.
+- **Example**: `https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature/filter?start=2025-03-19T05:17:22&end=2025-03-24T05:31:52` will return all humidity data from `12:17:22 19-03-2025` to `12:31:52 19-03-2025` in GMT+7.
 - **Response**: same as `Get all data`.
 
 ### Pump Control API
