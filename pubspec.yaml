@@ -30,14 +30,18 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-
+    
   # The following adds the Cupertino Icons font to your application.
   # Use with the CupertinoIcons class for iOS style icons.
   cupertino_icons: ^1.0.8
+  intl: ^0.18.1
+  fl_chart: ^0.70.2
+  http: ^0.13.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
+  
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
@@ -87,3 +91,35 @@ flutter:
   #
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
+
+
+  assets:
+    - assets/logo.png
+    - assets/morning.png
+    - assets/afternoon.png
+    - assets/night.png
+    - assets/menu_humidity.png
+    - assets/menu_temp.png
+    - assets/menu_watering.png
+    - assets/menu_prediction.png
+    - assets/Bungalow.png
+    - assets/Hygrometer.png
+    - assets/Temperature.png
+    - assets/Garden.png
+    - assets/Combo Chart.png
+    - assets/humidity_icon.png
+    - assets/return.png
+    - assets/details.png
+  fonts:
+    - family: Fuzzy Bubbles
+      fonts:
+        - asset: assets/fonts/FuzzyBubbles-Regular.ttf
+        - asset: assets/fonts/FuzzyBubbles-Bold.ttf
+          weight: 700
+    - family: Open Sans
+      fonts:
+        - asset: assets/fonts/OpenSans-Regular.ttf
+        - asset: assets/fonts/OpenSans-Bold.ttf
+          weight: 700
+        - asset: assets/fonts/OpenSans-SemiBold.ttf
+          weight: 600
