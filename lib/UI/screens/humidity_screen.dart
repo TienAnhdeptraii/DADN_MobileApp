@@ -153,7 +153,7 @@ class _HumidityScreenState extends State<HumidityScreen> {
                   ),
                   const SizedBox(height: 16),
                   SizedBox(
-                    height: 250,
+                    height: 200,
                     width: 200,
                     child: Stack(
                       alignment: Alignment.center,
@@ -207,7 +207,7 @@ class _HumidityScreenState extends State<HumidityScreen> {
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
-                    height: 200,
+                    height: 180,
                     child: LineChart(
                       LineChartData(
                         gridData: FlGridData(show: false),
