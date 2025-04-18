@@ -6,7 +6,7 @@ import 'package:myapp/UI/screens/humidity_details_screen.dart';
 
 //import 'package:myapp/UI/screens/temperature_screen.dart';
 //import 'package:myapp/UI/screens/watering_screen.dart';
-//import 'package:myapp/UI/screens/prediction_screen.dart';
+import 'package:myapp/UI/screens/prediction_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -30,6 +30,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/humidity': (context) => const HumidityScreen(),
         '/humidity_details': (context) => HumidityDetailsScreen(),
+        '/prediction': (context) => const PredictionScreen(),
         //'/temperature': (context) => const TemperatureScreen(),
         //'/temperature_details': (context) => const TemperatureDetailsScreen(),
       },

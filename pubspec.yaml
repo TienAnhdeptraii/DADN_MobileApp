@@ -37,6 +37,7 @@ dependencies:
   intl: ^0.18.1
   fl_chart: ^0.70.2
   http: ^0.13.5
+  invert_colors: ^0.0.4
 
 dev_dependencies:
   flutter_test:
@@ -110,6 +111,18 @@ flutter:
     - assets/humidity_icon.png
     - assets/return.png
     - assets/details.png
+    - assets/pre_humidity.png
+    - assets/pre_temp.png
+    - assets/pre_water.png
+    - assets/view_detail.png
+    - assets/Average_Math.png
+    - assets/Chain_Intermediate.png
+    - assets/External.png
+    - assets/hour_glass.png
+    - assets/Internal.png
+    - assets/Blur.png
+    - assets/Garden_Sprinkler.png
+    - assets/Sport_Stopwatch.png
   fonts:
     - family: Fuzzy Bubbles
       fonts:
