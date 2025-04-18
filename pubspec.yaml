@@ -122,7 +122,9 @@ flutter:
     - assets/Internal.png
     - assets/Blur.png
     - assets/Garden_Sprinkler.png
-    - assets/Sport_Stopwatch.png
+    - assets/Sport_Stopwatch.png    
+    - assets/automation.png
+    - assets/pump_watering.png
   fonts:
     - family: Fuzzy Bubbles
       fonts:
