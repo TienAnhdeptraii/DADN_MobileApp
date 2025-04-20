@@ -167,7 +167,7 @@ samples, guidance on mobile development, and a full API reference.
 - **Response:**
 ```json
 {
-    "status": "0 or 1"
+    "status": "0 or 1 (int)"
     "message": "Current pump status: 0 or 1"
 }
 ```
