@@ -160,4 +160,14 @@ samples, guidance on mobile development, and a full API reference.
     "waterTimes": 20 
 }
 ```
-- **Description**: `duration` is total duration water use in a day. `waterConsumption` is water usage in a day in m3. `waterTimes` is the times system waters the plants. 
+- **Description**: `duration` is total duration water use in a day. `waterConsumption` is water usage in a day in m3. `waterTimes` is the times system waters the plants.
+
+#### 5. Get pump status
+- **Endpoint:** `https://adapting-doe-precious.ngrok-free.app/ifarm-be/water/pump`
+- **Response:**
+```json
+{
+    "status": "0 or 1"
+    "message": "Current pump status: 0 or 1"
+}
+```
