@@ -160,4 +160,44 @@ samples, guidance on mobile development, and a full API reference.
     "waterTimes": 20 
 }
 ```
-- **Description**: `duration` is total duration water use in a day. `waterConsumption` is water usage in a day in m3. `waterTimes` is the times system waters the plants. 
+- **Description**: `duration` is total duration water use in a day. `waterConsumption` is water usage in a day in m3. `waterTimes` is the times system waters the plants.
+
+#### 5. Get pump status
+- **Endpoint:** **GET** `https://adapting-doe-precious.ngrok-free.app/ifarm-be/water/pump`
+- **Response:**
+```json
+{
+    "status": "0 or 1 (int)"
+    "message": "Current pump status: 0 or 1"
+}
+```
+
+### Prediction API
+#### 1. Humidity prediction
+- **Endpoint:** **GET** `https://adapting-doe-precious.ngrok-free.app/ifarm-be/predictions/humidity/{steps}`
+- **Description:** `steps` is period of time we want to predict (time unit is hour).
+- **Response**:
+  ```json
+  [
+      {
+          "dateTime": "2025-04-21T19:00:00",
+          "data": 27.45147787981353,
+          "description": "Medium"
+      },
+      {
+          "dateTime": "2025-04-21T20:00:00",
+          "data": 27.158026000026975,
+          "description": "Medium"
+      },
+      {
+          "dateTime": "2025-04-21T21:00:00",
+          "data": 26.700214306639978,
+          "description": "Medium"
+      },
+  ]
+  ```
+
+#### 2. Temperature prediction
+- **Endpoint:** **GET** `https://adapting-doe-precious.ngrok-free.app/ifarm-be/predictions/temperature/{steps}`
+- **Description:** same as `1`
+- **Response**: same as `1`
