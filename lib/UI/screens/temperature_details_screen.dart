@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:myapp/UI/widgets/custom_bottom_navbar.dart';
 import 'package:intl/intl.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class TemperatureDetailsScreen extends StatefulWidget {
   const TemperatureDetailsScreen({super.key});
@@ -11,15 +13,41 @@ class TemperatureDetailsScreen extends StatefulWidget {
 
 class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
   DateTime? fromDate;
-  TimeOfDay? fromTime;
   DateTime? toDate;
-  TimeOfDay? toTime;
+  bool isLoading = false;
 
-  List<Map<String, String>> filteredData = [
-    {'date': '10-04-2025', 'time': '12:50', 'value': '30°C', 'note': 'Good', 'color': 'green'},
-    {'date': '11-04-2025', 'time': '12:50', 'value': '20°C', 'note': 'Normal', 'color': 'orange'},
-    {'date': '12-04-2025', 'time': '12:50', 'value': '40°C', 'note': 'Bad', 'color': 'red'},
-  ];
+  List<Map<String, dynamic>> filteredData = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadInitialData();
+  }
+
+  Future<void> _loadInitialData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      final response = await http.get(
+        Uri.parse('https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature'),
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          filteredData = List<Map<String, dynamic>>.from(data);
+        });
+      }
+    } catch (e) {
+      print('Error loading initial data: $e');
+    } finally {
+      setState(() {
+        isLoading = false;
+      });
+    }
+  }
 
   Future<void> _selectDate(BuildContext context, bool isFrom) async {
     final DateTime? picked = await showDatePicker(
@@ -39,37 +67,72 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
     }
   }
 
-  Future<void> _selectTime(BuildContext context, bool isFrom) async {
-    final TimeOfDay? picked = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-    if (picked != null) {
+  Future<void> _filterData() async {
+    setState(() {
+      isLoading = true;
+    });
+
+    try {
+      String url = 'https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature/filter?';
+      
+      if (fromDate != null && toDate != null) {
+        // Format dates to the required format: yyyy-MM-ddTHH:mm:ss
+        final String fromDateFormatted = DateFormat('yyyy-MM-dd').format(fromDate!) + 'T00:00:00';
+        final String toDateFormatted = DateFormat('yyyy-MM-dd').format(toDate!) + 'T23:59:59';
+        
+        url += 'start=$fromDateFormatted&end=$toDateFormatted';
+      } else if (fromDate != null) {
+        // Only fromDate is set - set end to current time
+        final String fromDateFormatted = DateFormat('yyyy-MM-dd').format(fromDate!) + 'T00:00:00';
+        final String currentDateFormatted = DateFormat('yyyy-MM-dd').format(DateTime.now()) + 'T23:59:59';
+        
+        url += 'start=$fromDateFormatted&end=$currentDateFormatted';
+      } else if (toDate != null) {
+        // Only toDate is set - set start to 30 days before
+        final String toDateFormatted = DateFormat('yyyy-MM-dd').format(toDate!) + 'T23:59:59';
+        final String thirtyDaysBeforeFormatted = DateFormat('yyyy-MM-dd').format(toDate!.subtract(const Duration(days: 30))) + 'T00:00:00';
+        
+        url += 'start=$thirtyDaysBeforeFormatted&end=$toDateFormatted';
+      } else {
+        // No date selected, use default endpoint to get all data
+        url = 'https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature';
+      }
+
+      final response = await http.get(Uri.parse(url));
+
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        setState(() {
+          filteredData = List<Map<String, dynamic>>.from(data);
+        });
+      }
+    } catch (e) {
+      print('Error filtering data: $e');
+      // Show error message to user
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error filtering data: $e')),
+      );
+    } finally {
       setState(() {
-        if (isFrom) {
-          fromTime = picked;
-        } else {
-          toTime = picked;
-        }
+        isLoading = false;
       });
     }
   }
 
-  void _filterData() {
-    DateTime startDate = fromDate ?? DateTime(2000);
-    DateTime endDate = toDate ?? DateTime(2101);
-
-    setState(() {
-      filteredData = [
-        {'date': '10-04-2025', 'time': '12:50', 'value': '30°C', 'note': 'Good', 'color': 'green'},
-        {'date': '11-04-2025', 'time': '12:50', 'value': '20°C', 'note': 'Normal', 'color': 'orange'},
-        {'date': '12-04-2025', 'time': '12:50', 'value': '40°C', 'note': 'Bad', 'color': 'red'},
-      ].where((item) {
-        DateTime itemDate = DateFormat('dd-MM-yyyy').parse(item['date']!);
-        return itemDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
-               itemDate.isBefore(endDate.add(const Duration(days: 1)));
-      }).toList();
-    });
+  String _getNote(String value) {
+    final temp = double.tryParse(value) ?? 0;
+    if (temp < 18) return 'Cool';
+    if (temp < 25) return 'Normal';
+    if (temp < 30) return 'Warm';
+    return 'Hot';
+  }
+  
+  Color _getNoteColor(String value) {
+    final temp = double.tryParse(value) ?? 0;
+    if (temp < 18) return Colors.blue;
+    if (temp < 25) return Colors.green;
+    if (temp < 30) return Colors.orange;
+    return Colors.red;
   }
 
   @override
@@ -196,15 +259,24 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
                           borderRadius: BorderRadius.circular(25),
                         ),
                       ),
-                      child: const Text(
-                        'Filter',
-                        style: TextStyle(
-                          fontFamily: 'Open Sans',
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
+                      child: isLoading
+                          ? const SizedBox(
+                              height: 20,
+                              width: 20,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                          : const Text(
+                              'Filter',
+                              style: TextStyle(
+                                fontFamily: 'Open Sans',
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
                 ],
@@ -294,19 +366,22 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
                     ),
                     // Table Content
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: filteredData.length,
-                        itemBuilder: (context, index) {
-                          final item = filteredData[index];
-                          return _buildTableRow(
-                            item['date']!,
-                            item['time']!,
-                            item['value']!,
-                            item['note']!,
-                            _getColor(item['color']!),
-                          );
-                        },
-                      ),
+                      child: filteredData.isEmpty
+                          ? const Center(child: Text('No data available'))
+                          : ListView.builder(
+                              itemCount: filteredData.length,
+                              itemBuilder: (context, index) {
+                                final item = filteredData[index];
+                                final note = _getNote(item['value'] ?? '0');
+                                return _buildTableRow(
+                                  item['date'] ?? '',
+                                  item['time'] ?? '',
+                                  '${item['value'] ?? '0'}°C',
+                                  note,
+                                  _getNoteColor(item['value'] ?? '0'),
+                                );
+                              },
+                            ),
                     ),
                   ],
                 ),
@@ -360,19 +435,6 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
         ],
       ),
     );
-  }
-
-  Color _getColor(String color) {
-    switch (color) {
-      case 'green':
-        return Colors.green;
-      case 'orange':
-        return Colors.orange;
-      case 'red':
-        return Colors.red;
-      default:
-        return Colors.black;
-    }
   }
 }
 
