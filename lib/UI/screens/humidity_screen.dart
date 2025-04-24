@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -15,54 +16,63 @@ class HumidityScreen extends StatefulWidget {
 class _HumidityScreenState extends State<HumidityScreen> {
   List<FlSpot> humiditySpots = [];
   double latestHumidity = 0.0;
+  Timer? _timer; // ✅ Biến timer
 
   @override
   void initState() {
     super.initState();
     fetchHumidityData();
+    _timer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      fetchHumidityData(); // ✅ Cập nhật mỗi 30 giây
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // ✅ Hủy timer khi thoát
+    super.dispose();
   }
 
   Future<void> fetchHumidityData() async {
-  try {
-    // Lấy giá trị gần nhất
-    final recentResponse = await http.get(Uri.parse(
-      'https://adapting-doe-precious.ngrok-free.app/ifarm-be/humidity/recent',
-    ));
+    try {
+      // Lấy giá trị gần nhất
+      final recentResponse = await http.get(Uri.parse(
+        'https://adapting-doe-precious.ngrok-free.app/ifarm-be/humidity/recent',
+      ));
 
-    if (recentResponse.statusCode == 200) {
-      final String valueString = recentResponse.body.replaceAll('"', '');
-      final double recentValue = double.tryParse(valueString) ?? 0.0;
+      if (recentResponse.statusCode == 200) {
+        final String valueString = recentResponse.body.replaceAll('"', '');
+        final double recentValue = double.tryParse(valueString) ?? 0.0;
 
-      setState(() {
-        latestHumidity = recentValue;
-      });
-    }
-
-    // Lấy toàn bộ dữ liệu
-    final response = await http.get(Uri.parse(
-      'https://adapting-doe-precious.ngrok-free.app/ifarm-be/humidity',
-    ));
-
-    if (response.statusCode == 200) {
-      final List<dynamic> data = json.decode(response.body);
-      final List<FlSpot> spots = [];
-
-      for (int i = 0; i < data.length; i++) {
-        final value = double.tryParse(data[i]['value']) ?? 0.0;
-        spots.add(FlSpot(i.toDouble(), value));
+        setState(() {
+          latestHumidity = recentValue;
+        });
       }
 
-      setState(() {
-        humiditySpots = spots;
-      });
-    } else {
-      print('Failed to load full humidity data: ${response.statusCode}');
-    }
-  } catch (e) {
-    print('Error fetching humidity data: $e');
-  }
-}
+      // Lấy toàn bộ dữ liệu
+      final response = await http.get(Uri.parse(
+        'https://adapting-doe-precious.ngrok-free.app/ifarm-be/humidity',
+      ));
 
+      if (response.statusCode == 200) {
+        final List<dynamic> data = json.decode(response.body);
+        final List<FlSpot> spots = [];
+
+        for (int i = 0; i < data.length; i++) {
+          final value = double.tryParse(data[i]['value']) ?? 0.0;
+          spots.add(FlSpot(i.toDouble(), value));
+        }
+
+        setState(() {
+          humiditySpots = spots;
+        });
+      } else {
+        print('Failed to load full humidity data: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('Error fetching humidity data: $e');
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,10 +210,10 @@ class _HumidityScreenState extends State<HumidityScreen> {
                   const Text(
                     'Statistics',
                     style: TextStyle(
-                          fontFamily: 'Open Sans',
-                          fontSize: 25,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      fontFamily: 'Open Sans',
+                      fontSize: 25,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                   const SizedBox(height: 12),
                   SizedBox(
@@ -215,7 +225,7 @@ class _HumidityScreenState extends State<HumidityScreen> {
                           show: true,
                           bottomTitles: AxisTitles(
                             sideTitles: SideTitles(
-                              showTitles: false, // Ẩn trục hoành
+                              showTitles: false,
                             ),
                           ),
                           leftTitles: AxisTitles(
@@ -256,8 +266,7 @@ class _HumidityScreenState extends State<HumidityScreen> {
                             barWidth: 2,
                             dotData: FlDotData(
                               show: true,
-                              getDotPainter:
-                                  (spot, percent, barData, index) {
+                              getDotPainter: (spot, percent, barData, index) {
                                 if (index == barData.spots.length - 1) {
                                   return FlDotCirclePainter(
                                     radius: 5,
