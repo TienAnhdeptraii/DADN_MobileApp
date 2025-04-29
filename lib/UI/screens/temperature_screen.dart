@@ -3,6 +3,7 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:myapp/UI/widgets/custom_bottom_navbar.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:intl/intl.dart';
 
 class TemperatureScreen extends StatefulWidget {
   const TemperatureScreen({super.key});
@@ -27,24 +28,25 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
       isLoading = true;
     });
 
+    http.Client client = http.Client();
     try {
       // Fetch current temperature
-      final recentResponse = await http.get(
+      final recentResponse = await client.get(
         Uri.parse('https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature/recent'),
       );
 
-      if (recentResponse.statusCode == 200) {
+      if (recentResponse.statusCode == 200 && mounted) {
         setState(() {
           currentTemperature = recentResponse.body.replaceAll('"', '');
         });
       }
 
       // Fetch temperature history
-      final historyResponse = await http.get(
+      final historyResponse = await client.get(
         Uri.parse('https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature'),
       );
 
-      if (historyResponse.statusCode == 200) {
+      if (historyResponse.statusCode == 200 && mounted) {
         final List<dynamic> data = json.decode(historyResponse.body);
         setState(() {
           temperatureHistory = List<Map<String, dynamic>>.from(data);
@@ -52,21 +54,45 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
       }
     } catch (e) {
       print('Error fetching temperature data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error fetching data: $e')),
+        );
+      }
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      client.close();
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
   List<FlSpot> _getChartData() {
-    // Use only the last 7 entries for the chart
-    final displayData = temperatureHistory.take(7).toList();
-    if (displayData.isEmpty) {
+    // Lọc dữ liệu chỉ lấy ngày hôm nay
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    final todayData = temperatureHistory.where((item) {
+      final itemDate = item['date'] ?? '';
+      return itemDate == today;
+    }).toList();
+    
+    // Nếu không có dữ liệu hôm nay, trả về danh sách trống
+    if (todayData.isEmpty) {
       return [const FlSpot(0, 0)];
     }
 
-    // Reverse the order so the newest data is on the right
+    // Sắp xếp dữ liệu theo thời gian
+    todayData.sort((a, b) {
+      final timeA = a['time'] ?? '';
+      final timeB = b['time'] ?? '';
+      return timeA.compareTo(timeB);
+    });
+
+    // Lấy tối đa 7 điểm dữ liệu
+    final displayData = todayData.take(7).toList();
+    
+    // Tạo các điểm dữ liệu cho biểu đồ
     final spots = <FlSpot>[];
     for (int i = 0; i < displayData.length; i++) {
       final value = double.tryParse(displayData[i]['value'] ?? '0') ?? 0;
@@ -124,7 +150,9 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
-              onRefresh: fetchTemperatureData,
+              onRefresh: () async {
+                fetchTemperatureData();
+              },
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -237,7 +265,7 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
                               ),
                               IconButton(
                                 icon: const Icon(Icons.refresh),
-                                onPressed: fetchTemperatureData,
+                                onPressed: () => fetchTemperatureData(),
                               ),
                             ],
                           ),
@@ -269,7 +297,9 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
                                           if (value.toInt() >= temperatureHistory.length || value.toInt() < 0) {
                                             return const SizedBox.shrink();
                                           }
-                                          return Text(temperatureHistory[value.toInt()]['time'] ?? '');
+                                          final timeStr = temperatureHistory[value.toInt()]['time'] ?? '';
+                                          // Hiển thị thời gian theo định dạng ngắn gọn
+                                          return Text(timeStr.substring(0, 5)); // Chỉ hiển thị phần HH:MM
                                         },
                                       ),
                                     ),
@@ -290,7 +320,7 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
                                   minX: 0,
                                   maxX: _getChartData().length - 1.0,
                                   minY: 0,
-                                  maxY: 50, // Adjust based on your temperature range
+                                  maxY: 40, // Giảm xuống 40°C thay vì 50°C
                                   lineBarsData: [
                                     LineChartBarData(
                                       spots: _getChartData(),

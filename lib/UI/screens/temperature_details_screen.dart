@@ -16,12 +16,20 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
   DateTime? toDate;
   bool isLoading = false;
 
-  List<Map<String, dynamic>> filteredData = [];
+  // Dữ liệu mẫu để test
+  List<Map<String, dynamic>> filteredData = [
+    {'date': '2025-04-10', 'time': '09:30:00', 'value': '18.5', 'description': 'Normal', 'id': 'sample1'},
+    {'date': '2025-04-11', 'time': '10:45:00', 'value': '22.3', 'description': 'Normal', 'id': 'sample2'},
+    {'date': '2025-04-12', 'time': '14:15:00', 'value': '28.7', 'description': 'Warm', 'id': 'sample3'},
+    {'date': '2025-04-13', 'time': '16:20:00', 'value': '32.1', 'description': 'Hot', 'id': 'sample4'},
+    {'date': '2025-04-14', 'time': '08:10:00', 'value': '15.8', 'description': 'Cool', 'id': 'sample5'}
+  ];
 
   @override
   void initState() {
     super.initState();
-    _loadInitialData();
+    // Sử dụng dữ liệu mẫu hoặc gọi API nếu cần
+    // _loadInitialData();
   }
 
   Future<void> _loadInitialData() async {
@@ -29,23 +37,34 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
       isLoading = true;
     });
 
+    http.Client client = http.Client();
     try {
-      final response = await http.get(
+      final response = await client.get(
         Uri.parse('https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature'),
       );
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          filteredData = List<Map<String, dynamic>>.from(data);
-        });
+        if (mounted) {
+          setState(() {
+            filteredData = List<Map<String, dynamic>>.from(data);
+          });
+        }
       }
     } catch (e) {
       print('Error loading initial data: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error loading initial data: $e')),
+        );
+      }
     } finally {
-      setState(() {
-        isLoading = false;
-      });
+      client.close();
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
@@ -72,6 +91,34 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
       isLoading = true;
     });
 
+    // Để test, chúng ta sẽ lọc dữ liệu mẫu nếu có ngày được chọn
+    if (fromDate != null || toDate != null) {
+      final DateTime startDate = fromDate ?? DateTime(2000);
+      final DateTime endDate = toDate ?? DateTime(2101);
+      
+      // Chuyển đổi các chuỗi ngày trong dữ liệu mẫu thành đối tượng DateTime
+      final filteredResults = filteredData.where((item) {
+        try {
+          // Parse date from sample data (format: yyyy-MM-dd)
+          DateTime itemDate = DateFormat('yyyy-MM-dd').parse(item['date'] ?? '');
+          return itemDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
+                  itemDate.isBefore(endDate.add(const Duration(days: 1)));
+        } catch (e) {
+          print('Error parsing date: $e');
+          return false;
+        }
+      }).toList();
+      
+      setState(() {
+        filteredData = filteredResults;
+        isLoading = false;
+      });
+      
+      return;
+    }
+
+    // Phần code thật với API call
+    http.Client client = http.Client();
     try {
       String url = 'https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature/filter?';
       
@@ -98,24 +145,46 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
         url = 'https://adapting-doe-precious.ngrok-free.app/ifarm-be/temperature';
       }
 
-      final response = await http.get(Uri.parse(url));
+      print('Calling API: $url'); // Debug info
+
+      final response = await client.get(Uri.parse(url));
 
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
-        setState(() {
-          filteredData = List<Map<String, dynamic>>.from(data);
-        });
+        if (mounted) {
+          setState(() {
+            filteredData = List<Map<String, dynamic>>.from(data);
+          });
+        }
+      } else {
+        throw Exception('Failed to load data: Status ${response.statusCode}');
       }
     } catch (e) {
       print('Error filtering data: $e');
       // Show error message to user
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error filtering data: $e')),
-      );
-    } finally {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error filtering data: $e')),
+        );
+      }
+      
+      // Trở lại dữ liệu mẫu nếu API bị lỗi
       setState(() {
-        isLoading = false;
+        filteredData = [
+          {'date': '2025-04-10', 'time': '09:30:00', 'value': '18.5', 'description': 'Normal', 'id': 'sample1'},
+          {'date': '2025-04-11', 'time': '10:45:00', 'value': '22.3', 'description': 'Normal', 'id': 'sample2'},
+          {'date': '2025-04-12', 'time': '14:15:00', 'value': '28.7', 'description': 'Warm', 'id': 'sample3'},
+          {'date': '2025-04-13', 'time': '16:20:00', 'value': '32.1', 'description': 'Hot', 'id': 'sample4'},
+          {'date': '2025-04-14', 'time': '08:10:00', 'value': '15.8', 'description': 'Cool', 'id': 'sample5'}
+        ];
       });
+    } finally {
+      client.close();
+      if (mounted) {
+        setState(() {
+          isLoading = false;
+        });
+      }
     }
   }
 
