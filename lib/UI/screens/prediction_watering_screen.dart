@@ -213,7 +213,7 @@ class _PredictionWateringScreenState extends State<PredictionWateringScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PredictionHumidityDetailsScreen(),
+                                builder: (context) => PredictionHumidityDetailsScreen(data: []),
                               ),
                             );
 

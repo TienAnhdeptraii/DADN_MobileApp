@@ -4,11 +4,31 @@ import 'package:myapp/UI/widgets/custom_bottom_navbar.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:math';
 import 'package:invert_colors/invert_colors.dart';
-import 'package:myapp/UI/screens/prediction_humidity_details_screen.dart';
+import 'package:myapp/UI/screens/prediction_temperature_details_screen.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 
 enum TimeRange { threeHours, sixHours, twelveHours, twentyFourHours }
+class TemperatureEntry {
+  final DateTime dateTime;
+  final double value;
+  final String description;
 
+  TemperatureEntry({
+    required this.dateTime,
+    required this.value,
+    required this.description,
+  });
+
+  factory TemperatureEntry.fromJson(Map<String, dynamic> json) {
+    return TemperatureEntry(
+      dateTime: DateTime.parse(json['dateTime']),
+      value: (json['data'] as num).toDouble(),
+      description: json['description'],
+    );
+  }
+}
 class PredictionTemperatureScreen extends StatefulWidget {
   const PredictionTemperatureScreen({super.key});
 
@@ -17,16 +37,82 @@ class PredictionTemperatureScreen extends StatefulWidget {
 }
 
 class _PredictionTemperatureScreenState extends State<PredictionTemperatureScreen> {
-
-  List<FlSpot> temperatureSpots = List.generate(10, (index) {
-
-    double x = index.toDouble();
-    double y = Random().nextInt(61) + 30;
-    return FlSpot(x, y);
-  });
+  List<TemperatureEntry> temperatureData = [];
+  double? maxValue;
+  double? minValue;
+  double? avgValue;
+  double? medianValue;
+  List<FlSpot> temperatureSpots = [];
   @override
   void initState() {
     super.initState();
+    fetchPredictionData();
+  }
+  Future<void> fetchPredictionData() async {
+    final int step = 24;
+    final uri = Uri.parse(
+      'https://adapting-doe-precious.ngrok-free.app/ifarm-be/predictions/temperature/$step',
+    );
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        if (responseData.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Không tìm thấy dữ liệu trong khoảng thời gian này'),
+              backgroundColor: Colors.blueGrey,
+            ),
+          );
+          return;
+        }
+
+        final entries = responseData.map((e) => TemperatureEntry.fromJson(e)).toList();
+
+        setState(() {
+          temperatureData = entries;
+          updateStats(entries);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tìm thấy dữ liệu trong khoảng thời gian này'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi khi kết nối tới máy chủ: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  void updateStats(List<TemperatureEntry> entries) {
+    if (entries.isEmpty) return;
+
+    final values = entries.map((e) => e.value).toList()..sort();
+
+    double min = values.first;
+    double max = values.last;
+    double avg = values.reduce((a, b) => a + b) / values.length;
+    double median = values.length % 2 == 1
+        ? values[values.length ~/ 2]
+        : (values[values.length ~/ 2 - 1] + values[values.length ~/ 2]) / 2;
+    final List<FlSpot> spots = List.generate(
+      entries.length,
+          (index) => FlSpot(index.toDouble(), entries[index].value),
+    );
+
+    setState(() {
+      minValue = min;
+      maxValue = max;
+      avgValue = avg;
+      medianValue = median;
+      temperatureSpots = spots;
+    });
   }
   // TimeRange _selectedRange = TimeRange.threeHours;
   //
@@ -108,23 +194,23 @@ class _PredictionTemperatureScreenState extends State<PredictionTemperatureScree
               children: [
                 DashboardCard(
                     title: 'Maximum',
-                    iconPath: 'assets/Internal.png',
-                    value: '80'
+                    iconPath: 'assets/External.png',
+                    value: maxValue?.toStringAsFixed(0) ?? '--',
                 ),
                 DashboardCard(
                     title: 'Minimum',
-                    iconPath: 'assets/External.png',
-                    value: '50'
+                    iconPath: 'assets/Internal.png',
+                    value: minValue?.toStringAsFixed(0) ?? '--',
                 ),
                 DashboardCard(
                     title: 'Average',
                     iconPath: 'assets/Average_Math.png',
-                    value: '60'
+                    value: avgValue?.toStringAsFixed(0) ?? '--',
                 ),
                 DashboardCard(
                     title: 'Median',
                     iconPath: 'assets/Chain_Intermediate.png',
-                    value: '70'
+                    value: medianValue?.toStringAsFixed(0) ?? '--',
                 ),
               ],
             ),
@@ -159,7 +245,7 @@ class _PredictionTemperatureScreenState extends State<PredictionTemperatureScree
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PredictionHumidityDetailsScreen(),
+                                builder: (context) => PredictionTemperatureDetailsScreen(data: temperatureData),
                               ),
                             );
 
@@ -205,9 +291,9 @@ class _PredictionTemperatureScreenState extends State<PredictionTemperatureScree
                               sideTitles: SideTitles(
                                 showTitles: true,
                                 reservedSize: 40,
-                                interval: 20,
+                                interval: 10,
                                 getTitlesWidget: (value, meta) {
-                                  return Text('${value.toInt()}%');
+                                  return Text('${value.toInt()}°C');
                                 },
                               ),
                             ),
@@ -230,7 +316,7 @@ class _PredictionTemperatureScreenState extends State<PredictionTemperatureScree
                               ? temperatureSpots.length - 1
                               : 5,
                           minY: 0,
-                          maxY: 100,
+                          maxY: 50,
                           lineBarsData: [
                             LineChartBarData(
                               spots: temperatureSpots,
@@ -359,7 +445,7 @@ class DashboardCard extends StatelessWidget {
                   ),
                 ),
                 Positioned(
-                  right: -10,
+                  right: -15,
                   top: -1,
                   child: Text(
                     '°C',

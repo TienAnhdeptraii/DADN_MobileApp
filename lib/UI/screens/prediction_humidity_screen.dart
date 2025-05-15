@@ -5,9 +5,29 @@ import 'package:fl_chart/fl_chart.dart';
 import 'dart:math';
 import 'package:invert_colors/invert_colors.dart';
 import 'package:myapp/UI/screens/prediction_humidity_details_screen.dart';
-
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 enum TimeRange { threeHours, sixHours, twelveHours, twentyFourHours }
+class HumidityEntry {
+  final DateTime dateTime;
+  final double value;
+  final String description;
+
+  HumidityEntry({
+    required this.dateTime,
+    required this.value,
+    required this.description,
+  });
+
+  factory HumidityEntry.fromJson(Map<String, dynamic> json) {
+    return HumidityEntry(
+      dateTime: DateTime.parse(json['dateTime']),
+      value: (json['data'] as num).toDouble(),
+      description: json['description'],
+    );
+  }
+}
 
 class PredictionHumidityScreen extends StatefulWidget {
   const PredictionHumidityScreen({super.key});
@@ -17,16 +37,16 @@ class PredictionHumidityScreen extends StatefulWidget {
 }
 
 class _PredictionHumidityScreenState extends State<PredictionHumidityScreen> {
-
-  List<FlSpot> humiditySpots = List.generate(10, (index) {
-
-    double x = index.toDouble();
-    double y = Random().nextInt(61) + 30;
-    return FlSpot(x, y);
-  });
+  List<HumidityEntry> humidityData = [];
+  double? maxValue;
+  double? minValue;
+  double? avgValue;
+  double? medianValue;
+  List<FlSpot> humiditySpots = [];
   @override
   void initState() {
     super.initState();
+    fetchPredictionData();
   }
   // TimeRange _selectedRange = TimeRange.threeHours;
   //
@@ -36,6 +56,72 @@ class _PredictionHumidityScreenState extends State<PredictionHumidityScreen> {
   //   TimeRange.twelveHours: '12 hrs',
   //   TimeRange.twentyFourHours: '24 hrs',
   // };
+  Future<void> fetchPredictionData() async {
+    final int step = 24;
+    final uri = Uri.parse(
+      'https://adapting-doe-precious.ngrok-free.app/ifarm-be/predictions/humidity/$step',
+    );
+    try {
+      final response = await http.get(uri);
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        if (responseData.isEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Không tìm thấy dữ liệu trong khoảng thời gian này'),
+              backgroundColor: Colors.blueGrey,
+            ),
+          );
+          return;
+        }
+
+        final entries = responseData.map((e) => HumidityEntry.fromJson(e)).toList();
+
+        setState(() {
+          humidityData = entries;
+          updateStats(entries);
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Không tìm thấy dữ liệu trong khoảng thời gian này'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lỗi khi kết nối tới máy chủ: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+  void updateStats(List<HumidityEntry> entries) {
+    if (entries.isEmpty) return;
+
+    final values = entries.map((e) => e.value).toList()..sort();
+
+    double min = values.first;
+    double max = values.last;
+    double avg = values.reduce((a, b) => a + b) / values.length;
+    double median = values.length % 2 == 1
+        ? values[values.length ~/ 2]
+        : (values[values.length ~/ 2 - 1] + values[values.length ~/ 2]) / 2;
+    final List<FlSpot> spots = List.generate(
+      entries.length,
+          (index) => FlSpot(index.toDouble(), entries[index].value),
+    );
+
+    setState(() {
+      minValue = min;
+      maxValue = max;
+      avgValue = avg;
+      medianValue = median;
+      humiditySpots = spots;
+    });
+  }
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -108,23 +194,23 @@ class _PredictionHumidityScreenState extends State<PredictionHumidityScreen> {
               children: [
                 DashboardCard(
                     title: 'Maximum',
-                    iconPath: 'assets/Internal.png',
-                    value: '80'
+                    iconPath: 'assets/External.png',
+                    value: maxValue?.toStringAsFixed(0) ?? '--',
                 ),
                 DashboardCard(
                     title: 'Minimum',
-                    iconPath: 'assets/External.png',
-                    value: '50'
+                    iconPath: 'assets/Internal.png',
+                    value: minValue?.toStringAsFixed(0) ?? '--',
                 ),
                 DashboardCard(
                     title: 'Average',
                     iconPath: 'assets/Average_Math.png',
-                    value: '60'
+                    value: avgValue?.toStringAsFixed(0) ?? '--',
                 ),
                 DashboardCard(
                     title: 'Median',
                     iconPath: 'assets/Chain_Intermediate.png',
-                    value: '70'
+                    value: medianValue?.toStringAsFixed(0) ?? '--',
                 ),
               ],
             ),
@@ -159,7 +245,7 @@ class _PredictionHumidityScreenState extends State<PredictionHumidityScreen> {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => PredictionHumidityDetailsScreen(),
+                                builder: (context) => PredictionHumidityDetailsScreen(data: humidityData),
                               ),
                             );
 
@@ -359,7 +445,7 @@ class DashboardCard extends StatelessWidget {
                 ),
               ),
               Positioned(
-                right: -10,
+                right: -20,
                 top: -1,
                 child: Text(
                   '%',

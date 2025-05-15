@@ -2,19 +2,19 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:myapp/UI/widgets/custom_bottom_navbar.dart';
-import 'package:myapp/UI/screens/prediction_humidity_screen.dart';
+import 'package:myapp/UI/screens/prediction_temperature_screen.dart';
 
-class PredictionHumidityDetailsScreen extends StatefulWidget {
-  final List<HumidityEntry> data;
-  const PredictionHumidityDetailsScreen({super.key, required this.data});
+class PredictionTemperatureDetailsScreen extends StatefulWidget {
+  final List<TemperatureEntry> data;
+  const PredictionTemperatureDetailsScreen({super.key, required this.data});
 
 
   @override
-  State<PredictionHumidityDetailsScreen> createState() => _PredictionHumidityDetailsScreenState();
+  State<PredictionTemperatureDetailsScreen> createState() => _PredictionTemperatureDetailsScreenState();
 }
 
-class _PredictionHumidityDetailsScreenState extends State<PredictionHumidityDetailsScreen> {
-  late List<HumidityEntry> data;
+class _PredictionTemperatureDetailsScreenState extends State<PredictionTemperatureDetailsScreen> {
+  late List<TemperatureEntry> data;
   @override
   void initState() {
     super.initState();
@@ -24,14 +24,14 @@ class _PredictionHumidityDetailsScreenState extends State<PredictionHumidityDeta
 
   Color getNoteColor(String note) {
     switch (note) {
-      case 'Too dry':
-        return const Color(0xFFEF6C00); // Deep orange
+      case 'Too cold':
+        return const Color(0xFF4FC3F7); // Light blue
       case 'Medium':
-        return const Color(0xFFFFA000); // Amber
+        return const Color(0xFFFFA726); // Light orange
       case 'Good':
-        return const Color(0xFF43A047); // Green
-      case 'Too wet':
-        return const Color(0xFF1E88E5); // Blue
+        return const Color(0xFF66BB6A); // Green
+      case 'Too hot':
+        return const Color(0xFFE53935); // Red
       default:
         return Colors.grey; // fallback
     }
