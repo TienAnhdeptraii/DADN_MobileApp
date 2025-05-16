@@ -43,21 +43,95 @@ class _PredictionHumidityScreenState extends State<PredictionHumidityScreen> {
   double? avgValue;
   double? medianValue;
   List<FlSpot> humiditySpots = [];
+  
+  /// Selected time range for prediction
+  TimeRange _selectedRange = TimeRange.threeHours;
+  
+  /// Flag to show/hide the time selector
+  bool _showTimeSelector = false;
+  
+  /// Maps for tracking hover states of each time range option
+  Map<TimeRange, bool> _hoverStates = {
+    TimeRange.threeHours: false,
+    TimeRange.sixHours: false,
+    TimeRange.twelveHours: false,
+    TimeRange.twentyFourHours: false,
+  };
+  
   @override
   void initState() {
     super.initState();
     fetchPredictionData();
   }
-  // TimeRange _selectedRange = TimeRange.threeHours;
-  //
-  // final Map<TimeRange, String> rangeLabels = {
-  //   TimeRange.threeHours: '3 hrs',
-  //   TimeRange.sixHours: '6 hrs',
-  //   TimeRange.twelveHours: '12 hrs',
-  //   TimeRange.twentyFourHours: '24 hrs',
-  // };
+
+  /// Returns the color for a specific time range option
+  Color _getTimeRangeColor(TimeRange range) {
+    switch (range) {
+      case TimeRange.threeHours:
+        return Colors.blue;
+      case TimeRange.sixHours:
+        return Colors.purple;
+      case TimeRange.twelveHours:
+        return Colors.orange;
+      case TimeRange.twentyFourHours:
+        return Colors.red;
+    }
+  }
+
+  /// Builds a time option with hover and selection effects
+  Widget _buildTimeOption(TimeRange range, String text) {
+    final bool isSelected = _selectedRange == range;
+    final bool isHovered = _hoverStates[range] ?? false;
+    final Color color = _getTimeRangeColor(range);
+    
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hoverStates[range] = true),
+      onExit: (_) => setState(() => _hoverStates[range] = false),
+      child: GestureDetector(
+        onTap: () {
+          setState(() {
+            _selectedRange = range;
+            fetchPredictionData();
+          });
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+          decoration: BoxDecoration(
+            color: isSelected ? color.withOpacity(0.2) : (isHovered ? color.withOpacity(0.1) : Colors.transparent),
+            borderRadius: BorderRadius.circular(22.5),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              color: color,
+              fontWeight: isSelected || isHovered ? FontWeight.w800 : FontWeight.w600,
+              fontSize: 20,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> fetchPredictionData() async {
-    final int step = 24;
+    // Convert the selected time range to the appropriate step value
+    final int step;
+    switch (_selectedRange) {
+      case TimeRange.threeHours:
+        step = 3;
+        break;
+      case TimeRange.sixHours:
+        step = 6;
+        break;
+      case TimeRange.twelveHours:
+        step = 12;
+        break;
+      case TimeRange.twentyFourHours:
+        step = 24;
+        break;
+    }
+    
     final uri = Uri.parse(
       'https://adapting-doe-precious.ngrok-free.app/ifarm-be/predictions/humidity/$step',
     );
@@ -98,6 +172,7 @@ class _PredictionHumidityScreenState extends State<PredictionHumidityScreen> {
       );
     }
   }
+  
   void updateStats(List<HumidityEntry> entries) {
     if (entries.isEmpty) return;
 
@@ -122,6 +197,7 @@ class _PredictionHumidityScreenState extends State<PredictionHumidityScreen> {
       humiditySpots = spots;
     });
   }
+  
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -153,29 +229,62 @@ class _PredictionHumidityScreenState extends State<PredictionHumidityScreen> {
             ),
           ),
           actions: [
-            //buildTimeSelector(),
-            Padding(
-              padding: const EdgeInsets.only(right: 30.0),
-              child: Container(
-                width: 40,
-                height: 40,
+            if (_showTimeSelector)
+              Container(
+                margin: const EdgeInsets.only(right: 5),
+                height: 45,
+                width: 330,
                 decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22.5),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  children: [
+                    _buildTimeOption(TimeRange.threeHours, '3 hrs'),
+                    _buildTimeOption(TimeRange.sixHours, '6 hrs'),
+                    _buildTimeOption(TimeRange.twelveHours, '12 hrs'),
+                    _buildTimeOption(TimeRange.twentyFourHours, '24 hrs'),
+                  ],
+                ),
+              ),
+            Padding(
+              padding: const EdgeInsets.only(right: 15),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _showTimeSelector = !_showTimeSelector;
+                  });
+                },
+                child: Container(
+                  width: 45,
+                  height: 45,
+                  decoration: const BoxDecoration(
                     color: Colors.white,
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black12,
-                        blurRadius: 8.0,
-                        offset: Offset(0, 4),
+                        blurRadius: 4,
+                        offset: Offset(0, 2),
                       ),
-                    ]
-                ),
-                child: Stack(
-                    alignment: Alignment.center,
-                    children: [Image.asset('assets/hour_glass.png',
-                      height: 30,
-                      width: 30,),
-                    ]
+                    ],
+                  ),
+                  child: Center(
+                    child: Image.asset(
+                      'assets/hour_glass.png',
+                      width: 24,
+                      height: 24,
+                      color: Colors.black,
+                    ),
+                  ),
                 ),
               ),
             ),
