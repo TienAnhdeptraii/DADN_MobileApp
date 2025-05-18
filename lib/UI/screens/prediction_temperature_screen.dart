@@ -80,16 +80,16 @@ class _PredictionTemperatureScreenState extends State<PredictionTemperatureScree
     final int step;
     switch (_selectedRange) {
       case TimeRange.threeHours:
-        step = 3;
-        break;
-      case TimeRange.sixHours:
-        step = 6;
-        break;
-      case TimeRange.twelveHours:
         step = 12;
         break;
-      case TimeRange.twentyFourHours:
+      case TimeRange.sixHours:
         step = 24;
+        break;
+      case TimeRange.twelveHours:
+        step = 48;
+        break;
+      case TimeRange.twentyFourHours:
+        step = 72;
         break;
     }
     
@@ -244,7 +244,7 @@ class _PredictionTemperatureScreenState extends State<PredictionTemperatureScree
             if (_showTimeSelector)
               Container(
                 margin: const EdgeInsets.only(right: 5),
-                height: 45,
+                height: 40,
                 width: 330,
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -260,16 +260,16 @@ class _PredictionTemperatureScreenState extends State<PredictionTemperatureScree
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildTimeOption(TimeRange.threeHours, '3 hrs'),
-                    _buildTimeOption(TimeRange.sixHours, '6 hrs'),
-                    _buildTimeOption(TimeRange.twelveHours, '12 hrs'),
-                    _buildTimeOption(TimeRange.twentyFourHours, '24 hrs'),
+                    _buildTimeOption(TimeRange.threeHours, '12 hrs'),
+                    _buildTimeOption(TimeRange.sixHours, '24 hrs'),
+                    _buildTimeOption(TimeRange.twelveHours, '48 hrs'),
+                    _buildTimeOption(TimeRange.twentyFourHours, '72 hrs'),
 
                   ],
                 ),
               ),
             Padding(
-              padding: const EdgeInsets.only(right: 15),
+              padding: const EdgeInsets.only(right: 10),
               child: GestureDetector(
                 onTap: () {
                   setState(() {

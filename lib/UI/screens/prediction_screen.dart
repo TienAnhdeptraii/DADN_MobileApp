@@ -82,18 +82,18 @@ class _PredictionScreenState extends State<PredictionScreen> {
             }, // Điều hướng đến HumidityScreen
           ),
           const SizedBox(height: 16),
-          Dashboard(
-            title: 'Watering',
-            iconPath: 'assets/pre_water.png',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => PredictionWateringScreen(),
-                ),
-              );
-            }, // Điều hướng đến HumidityScreen
-          ),
+          // Dashboard(
+          //   title: 'Watering',
+          //   iconPath: 'assets/pre_water.png',
+          //   onTap: () {
+          //     Navigator.push(
+          //       context,
+          //       MaterialPageRoute(
+          //         builder: (context) => PredictionWateringScreen(),
+          //       ),
+          //     );
+          //   }, // Điều hướng đến HumidityScreen
+          // ),
         ],
       ),
       bottomNavigationBar: CustomBottomNavBar(

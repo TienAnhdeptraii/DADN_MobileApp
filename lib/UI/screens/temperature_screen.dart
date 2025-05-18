@@ -271,7 +271,7 @@ class _TemperatureScreenState extends State<TemperatureScreen> {
                           ),
                           const SizedBox(height: 20),
                           SizedBox(
-                            height: 300,
+                            height: 250,
                             child: temperatureHistory.isEmpty
                               ? const Center(child: Text('No data available'))
                               : LineChart(
