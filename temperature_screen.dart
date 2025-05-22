@@ -156,9 +156,8 @@ class TemperatureScreen extends StatelessWidget {
                           ),
                           bottomTitles: AxisTitles(
                             sideTitles: SideTitles(
-                              showTitles: true,
-                              interval: 1,
-                              reservedSize: 30,
+                              showTitles: false,
+                              reservedSize: 0,
                             ),
                           ),
                           rightTitles: AxisTitles(

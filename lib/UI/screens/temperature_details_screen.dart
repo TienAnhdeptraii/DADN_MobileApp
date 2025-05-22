@@ -16,20 +16,13 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
   DateTime? toDate;
   bool isLoading = false;
 
-  // Dữ liệu mẫu để test
-  List<Map<String, dynamic>> filteredData = [
-    {'date': '2025-04-10', 'time': '09:30:00', 'value': '18.5', 'description': 'Normal', 'id': 'sample1'},
-    {'date': '2025-04-11', 'time': '10:45:00', 'value': '22.3', 'description': 'Normal', 'id': 'sample2'},
-    {'date': '2025-04-12', 'time': '14:15:00', 'value': '28.7', 'description': 'Warm', 'id': 'sample3'},
-    {'date': '2025-04-13', 'time': '16:20:00', 'value': '32.1', 'description': 'Hot', 'id': 'sample4'},
-    {'date': '2025-04-14', 'time': '08:10:00', 'value': '15.8', 'description': 'Cool', 'id': 'sample5'}
-  ];
+  List<Map<String, dynamic>> filteredData = [];
+  List<Map<String, dynamic>> allData = [];
 
   @override
   void initState() {
     super.initState();
-    // Sử dụng dữ liệu mẫu hoặc gọi API nếu cần
-    // _loadInitialData();
+    _loadInitialData(); // Luôn lấy dữ liệu thực tế khi vào màn hình
   }
 
   Future<void> _loadInitialData() async {
@@ -47,7 +40,8 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
         final List<dynamic> data = json.decode(response.body);
         if (mounted) {
           setState(() {
-            filteredData = List<Map<String, dynamic>>.from(data);
+            allData = List<Map<String, dynamic>>.from(data);
+            filteredData = allData;
           });
         }
       }
@@ -91,29 +85,31 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
       isLoading = true;
     });
 
-    // Để test, chúng ta sẽ lọc dữ liệu mẫu nếu có ngày được chọn
+    // Nếu không chọn ngày nào, luôn gọi API lấy toàn bộ dữ liệu
+    if (fromDate == null && toDate == null) {
+      await _loadInitialData();
+      setState(() { isLoading = false; });
+      return;
+    }
+
+    // Lọc trên allData thay vì filteredData
     if (fromDate != null || toDate != null) {
       final DateTime startDate = fromDate ?? DateTime(2000);
       final DateTime endDate = toDate ?? DateTime(2101);
-      
-      // Chuyển đổi các chuỗi ngày trong dữ liệu mẫu thành đối tượng DateTime
-      final filteredResults = filteredData.where((item) {
+      final filteredResults = allData.where((item) {
         try {
-          // Parse date from sample data (format: yyyy-MM-dd)
           DateTime itemDate = DateFormat('yyyy-MM-dd').parse(item['date'] ?? '');
           return itemDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
-                  itemDate.isBefore(endDate.add(const Duration(days: 1)));
+                 itemDate.isBefore(endDate.add(const Duration(days: 1)));
         } catch (e) {
           print('Error parsing date: $e');
           return false;
         }
       }).toList();
-      
       setState(() {
         filteredData = filteredResults;
         isLoading = false;
       });
-      
       return;
     }
 
@@ -169,15 +165,6 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
       }
       
       // Trở lại dữ liệu mẫu nếu API bị lỗi
-      setState(() {
-        filteredData = [
-          {'date': '2025-04-10', 'time': '09:30:00', 'value': '18.5', 'description': 'Normal', 'id': 'sample1'},
-          {'date': '2025-04-11', 'time': '10:45:00', 'value': '22.3', 'description': 'Normal', 'id': 'sample2'},
-          {'date': '2025-04-12', 'time': '14:15:00', 'value': '28.7', 'description': 'Warm', 'id': 'sample3'},
-          {'date': '2025-04-13', 'time': '16:20:00', 'value': '32.1', 'description': 'Hot', 'id': 'sample4'},
-          {'date': '2025-04-14', 'time': '08:10:00', 'value': '15.8', 'description': 'Cool', 'id': 'sample5'}
-        ];
-      });
     } finally {
       client.close();
       if (mounted) {
@@ -202,6 +189,15 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
     if (temp < 25) return Colors.green;
     if (temp < 30) return Colors.orange;
     return Colors.red;
+  }
+
+  // Thêm nút Clear Filter
+  void _clearFilter() async {
+    setState(() {
+      fromDate = null;
+      toDate = null;
+    });
+    await _loadInitialData();
   }
 
   @override
@@ -310,6 +306,24 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Nút Clear Filter
+                      ElevatedButton(
+                        onPressed: _clearFilter,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade300,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Clear Filter',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
@@ -467,10 +481,28 @@ class _TemperatureDetailsScreenState extends State<TemperatureDetailsScreen> {
   }
 
   Widget _buildTableRow(String date, String time, String value, String note, Color noteColor) {
+    Color bgColor;
+    switch (note) {
+      case 'Cool':
+        bgColor = Colors.blue.withOpacity(0.07);
+        break;
+      case 'Normal':
+        bgColor = Colors.green.withOpacity(0.07);
+        break;
+      case 'Warm':
+        bgColor = Colors.orange.withOpacity(0.07);
+        break;
+      case 'Hot':
+        bgColor = Colors.red.withOpacity(0.07);
+        break;
+      default:
+        bgColor = Colors.white;
+    }
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
-      decoration: const BoxDecoration(
-        border: Border(
+      decoration: BoxDecoration(
+        color: bgColor,
+        border: const Border(
           bottom: BorderSide(color: Colors.grey, width: 0.5),
         ),
       ),

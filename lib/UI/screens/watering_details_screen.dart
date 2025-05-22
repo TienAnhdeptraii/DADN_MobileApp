@@ -14,6 +14,7 @@ class WateringDetailsScreen extends StatefulWidget {
 class _WateringDetailsScreenState extends State<WateringDetailsScreen> {
   bool isLoading = true;
   List<Map<String, dynamic>> wateringHistory = [];
+  List<Map<String, dynamic>> allData = [];
   DateTime? fromDate;
   DateTime? toDate;
 
@@ -37,7 +38,8 @@ class _WateringDetailsScreenState extends State<WateringDetailsScreen> {
       if (response.statusCode == 200) {
         final List<dynamic> data = json.decode(response.body);
         setState(() {
-          wateringHistory = List<Map<String, dynamic>>.from(data);
+          allData = List<Map<String, dynamic>>.from(data);
+          wateringHistory = allData;
         });
       }
     } catch (e) {
@@ -48,7 +50,7 @@ class _WateringDetailsScreenState extends State<WateringDetailsScreen> {
         );
       }
     } finally {
-      client.close(); // Đóng HTTP client
+      client.close();
       if (mounted) {
         setState(() {
           isLoading = false;
@@ -76,63 +78,44 @@ class _WateringDetailsScreenState extends State<WateringDetailsScreen> {
   }
 
   Future<void> _filterData() async {
-    // Simple filter by date without API since there's no specific filter endpoint
-    // for watering in the API documentation
     setState(() {
       isLoading = true;
     });
 
-    http.Client client = http.Client();
-    try {
-      // Get all data first
-      final response = await client.get(
-        Uri.parse('https://adapting-doe-precious.ngrok-free.app/ifarm-be/water'),
-      );
-
-      if (response.statusCode == 200) {
-        final List<dynamic> allData = json.decode(response.body);
-        
-        // Filter locally
-        if (fromDate != null || toDate != null) {
-          final DateTime startDate = fromDate ?? DateTime(2000);
-          final DateTime endDate = toDate ?? DateTime(2101);
-          
-          setState(() {
-            wateringHistory = List<Map<String, dynamic>>.from(allData)
-                .where((item) {
-                  try {
-                    // Parse date from API (format: yyyy-MM-dd)
-                    DateTime itemDate = DateFormat('yyyy-MM-dd').parse(item['date'] ?? '');
-                    return itemDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
-                           itemDate.isBefore(endDate.add(const Duration(days: 1)));
-                  } catch (e) {
-                    print('Error parsing date: $e');
-                    return false;
-                  }
-                })
-                .toList();
-          });
-        } else {
-          setState(() {
-            wateringHistory = List<Map<String, dynamic>>.from(allData);
-          });
-        }
-      }
-    } catch (e) {
-      print('Error filtering watering history: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error filtering watering history: $e')),
-        );
-      }
-    } finally {
-      client.close(); // Đóng HTTP client
-      if (mounted) {
-        setState(() {
-          isLoading = false;
-        });
-      }
+    // Nếu không chọn ngày nào, hiển thị lại toàn bộ dữ liệu
+    if (fromDate == null && toDate == null) {
+      setState(() {
+        wateringHistory = allData;
+        isLoading = false;
+      });
+      return;
     }
+
+    // Lọc trên allData
+    final DateTime startDate = fromDate ?? DateTime(2000);
+    final DateTime endDate = toDate ?? DateTime(2101);
+    final filteredResults = allData.where((item) {
+      try {
+        DateTime itemDate = DateFormat('yyyy-MM-dd').parse(item['date'] ?? '');
+        return itemDate.isAfter(startDate.subtract(const Duration(days: 1))) &&
+               itemDate.isBefore(endDate.add(const Duration(days: 1)));
+      } catch (e) {
+        print('Error parsing date: $e');
+        return false;
+      }
+    }).toList();
+    setState(() {
+      wateringHistory = filteredResults;
+      isLoading = false;
+    });
+  }
+
+  void _clearFilter() async {
+    setState(() {
+      fromDate = null;
+      toDate = null;
+      wateringHistory = allData;
+    });
   }
 
   @override
@@ -241,6 +224,24 @@ class _WateringDetailsScreenState extends State<WateringDetailsScreen> {
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // Nút Clear Filter
+                      ElevatedButton(
+                        onPressed: _clearFilter,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.grey.shade300,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                        child: const Text(
+                          'Clear Filter',
+                          style: TextStyle(
+                            color: Colors.black87,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
